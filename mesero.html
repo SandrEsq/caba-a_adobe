@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📱 Mesero — La Cabaña de Adobe</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --accent:#f43f5e; --ok:#22c55e; --warn:#facc15; --info:#38bdf8; --muted:#94a3b8; --danger:#ef4444; --gold:#fbbf24; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:#f1f5f9; min-height:100vh; }
+    .screen { display:none; min-height:100vh; padding:16px; }
+    .screen.active { display:block; }
+    .card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:16px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+    h1,h2,h3 { margin-bottom:8px; }
+    .btn { border:none; border-radius:10px; padding:8px 12px; font-weight:700; cursor:pointer; transition:transform .15s,filter .15s; }
+    .btn:hover { transform:translateY(-2px); filter:brightness(1.1); }
+    .btn-primary { background:linear-gradient(135deg,#f43f5e,#fb7185); color:#fff; }
+    .btn-green { background:linear-gradient(135deg,#22c55e,#4ade80); color:#052e16; }
+    .btn-blue { background:linear-gradient(135deg,#0ea5e9,#38bdf8); color:#082f49; }
+    .btn-ghost { background:rgba(255,255,255,.08); color:#f1f5f9; }
+    .btn-red { background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; }
+    .btn:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+    input,select,textarea { width:100%; padding:10px; border-radius:10px; border:2px solid #334155; background:#0f172a; color:#fff; font-size:1rem; }
+    .token-input { font-size:2rem; text-align:center; letter-spacing:10px; }
+
+    #screen-login { display:none; }
+    #screen-login.active { display:flex; align-items:center; justify-content:center; }
+
+    .layout { display:grid; grid-template-columns:1fr 360px; gap:16px; }
+    @media (max-width:1100px) { .layout { grid-template-columns:1fr; } }
+
+    .cat-bar { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+    .cat-btn { flex:1; min-width:120px; padding:12px; border-radius:10px; background:rgba(255,255,255,.08); cursor:pointer; font-weight:700; text-align:center; border:2px solid transparent; }
+    .cat-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+    table.comanda { width:100%; border-collapse:collapse; }
+    table.comanda th, table.comanda td { padding:8px 6px; border-bottom:1px solid #334155; text-align:left; font-size:.85rem; vertical-align:middle; }
+    table.comanda th { color:var(--muted); font-weight:600; font-size:.8rem; }
+    table.comanda tr.agotado { background:rgba(239,68,68,.12); opacity:.6; }
+    table.comanda tr.agotado td { color:#fca5a5; }
+    table.comanda tr.menu-dia { background:rgba(251,191,36,.12); }
+    .qty-btn { padding:3px 8px; border-radius:6px; border:none; background:var(--accent); color:#fff; cursor:pointer; font-weight:700; font-size:.8rem; margin:0 2px; }
+    .qty-btn:disabled { opacity:.3; cursor:not-allowed; }
+    .nota-btn { padding:3px 8px; border-radius:6px; border:none; background:rgba(255,255,255,.1); color:#fff; cursor:pointer; font-size:.8rem; }
+
+    .extras { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .extra { background:rgba(255,255,255,.06); border-radius:10px; padding:8px 10px; cursor:pointer; border:1px solid transparent; font-size:.85rem; }
+    .extra:hover { border-color:var(--info); }
+
+    .cart-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,.08); font-size:.85rem; }
+    .total { font-size:1.2rem; font-weight:800; color:var(--warn); margin:10px 0; }
+
+    .activo { background:rgba(255,255,255,.05); border-radius:14px; padding:12px; margin-bottom:8px; border-left:6px solid var(--info); }
+    .activo .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+    .activo .mesa { font-weight:800; font-size:1rem; }
+    .estado { padding:3px 8px; border-radius:6px; font-weight:700; font-size:.75rem; }
+    .estado-PENDIENTE { background:var(--warn); color:#1a1a2e; }
+    .estado-EN_PREPARACION { background:var(--info); color:#082f49; }
+    .estado-LISTO { background:var(--ok); color:#052e16; animation:pulse 1s infinite; }
+    .estado-CANCELADO { background:var(--danger); color:#fff; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); align-items:center; justify-content:center; z-index:50; }
+    .modal.active { display:flex; }
+    .modal-box { background:var(--card); padding:20px; border-radius:16px; max-width:600px; width:95%; max-height:80vh; overflow-y:auto; }
+    .pay-opt { display:block; width:100%; margin:8px 0; padding:12px; border-radius:10px; background:rgba(255,255,255,.08); color:#fff; font-weight:700; cursor:pointer; border:2px solid transparent; }
+    .pay-opt.selected { border-color:var(--accent); background:rgba(244,63,94,.15); }
+    .edit-row { display:grid; grid-template-columns:2fr auto auto auto auto; gap:6px; align-items:center; padding:6px 0; border-bottom:1px solid #334155; font-size:.85rem; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div id="screen-login" class="screen active">
+    <div class="card" style="max-width:400px; width:100%; text-align:center;">
+      <h1>🍽️ La Cabaña de Adobe</h1>
+      <p style="opacity:.8; margin-bottom:16px;">Ingresa tu token de mesero</p>
+      <input id="tokenInput" class="token-input" type="password" maxlength="4" placeholder="••••" />
+      <br/><br/>
+      <button class="btn btn-primary" style="width:100%;" onclick="login()">🚀 Entrar</button>
+      <p id="loginMsg" style="color:#f87171; margin-top:10px; font-weight:600;"></p>
+    </div>
+  </div>
+
+  <!-- PEDIDO -->
+  <div id="screen-pedido" class="screen">
+    <div class="layout">
+      <div>
+        <div class="card">
+          <h2>📋 Comanda</h2>
+          <div class="cat-bar">
+            <div class="cat-btn active" data-cat="comidas" onclick="cambiarCat('comidas')">🍽️ COMIDAS</div>
+            <div class="cat-btn" data-cat="bebidas" onclick="cambiarCat('bebidas')">🥤 BEBIDAS</div>
+            <div class="cat-btn" data-cat="postres" onclick="cambiarCat('postres')">🍰 POSTRES</div>
+          </div>
+          <table class="comanda">
+            <thead><tr><th>Cant</th><th>Platillo</th><th>Nota</th><th>Precio</th><th>Acciones</th></tr></thead>
+            <tbody id="menuTable"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>➕ Extras</h3>
+          <div class="extras" id="extrasGrid"></div>
+          <div style="margin-top:8px;">
+            <button class="btn btn-blue" style="width:100%;" onclick="abrirCustom()">➕ Agregar Algo Especial (fuera del menú)</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>📋 Mis Pedidos Activos</h2>
+          <div id="activos"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h3>🛒 Carrito</h3>
+          <div id="carrito"></div>
+          <div class="total">Total: $<span id="total">0</span></div>
+
+          <div style="margin-top:10px;">
+            <label style="font-size:.85rem; opacity:.8;">Zona:</label>
+            <select id="zonaSel">
+              <option value="">-- Elige zona --</option>
+              <option>Salón</option><option>Terraza</option><option>Jardín</option>
+            </select>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:.85rem; opacity:.8;">Mesa:</label>
+            <select id="mesaSel">
+              <option value="">-- Elige mesa --</option>
+            </select>
+          </div>
+
+          <button class="btn btn-green" style="width:100%; margin-top:12px;" id="btnEnviar" onclick="enviarPedido()" disabled>🚀 Enviar a Cocina</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PAGO -->
+  <div class="modal" id="modalPago">
+    <div class="modal-box">
+      <h3>Selecciona método de pago</h3>
+      <button class="pay-opt" data-m="Efectivo" onclick="selPago('Efectivo')">💵 Efectivo</button>
+      <button class="pay-opt" data-m="Tarjeta" onclick="selPago('Tarjeta')">💳 Tarjeta</button>
+      <button class="pay-opt" data-m="Transferencia" onclick="selPago('Transferencia')">📲 Transferencia</button>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-green" style="flex:1;" onclick="confirmarPago()">Confirmar</button>
+      </div>
+      <p id="pagoMsg" style="margin-top:8px; font-weight:600;"></p>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR -->
+  <div class="modal" id="modalEditar">
+    <div class="modal-box">
+      <h3>✏️ Editar Pedido</h3>
+      <div id="editItems"></div>
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="cerrarEditar()">Cerrar</button>
+        <button class="btn btn-green" style="flex:1;" onclick="guardarEdicion()">Guardar cambios</button>
+      </div>
+      <p id="editMsg" style="margin-top:8px; font-weight:600;"></p>
+    </div>
+  </div>
+
+  <!-- MODAL CUSTOM -->
+  <div class="modal" id="modalCustom">
+    <div class="modal-box">
+      <h3>➕ Agregar algo especial</h3>
+      <input id="cNombre" placeholder="Nombre (ej. Agua de limón)" style="margin-bottom:8px;" />
+      <input id="cPrecio" type="number" step="0.01" placeholder="Precio (0 si es gratis)" style="margin-bottom:8px;" />
+      <textarea id="cNota" rows="2" placeholder="Nota (ej. sin azúcar)"></textarea>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="cerrarCustom()">Cancelar</button>
+        <button class="btn btn-blue" style="flex:1;" onclick="confirmarCustom()">Agregar al carrito</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let token=null, nombre=null;
+    let menuData=[], extrasData=[], carrito={}, catActual='comidas';
+    let pedidoPagoId=null, metodoPagoSel=null;
+    let editandoId=null;
+    let editCart={};
+
+    function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+    async function login(){
+      const t=document.getElementById('tokenInput').value.trim();
+      const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+      const data=await res.json();
+      if(!data.ok){ document.getElementById('loginMsg').textContent=data.msg; return; }
+      if(data.rol!=='MESERO'){ document.getElementById('loginMsg').textContent='Token no es de mesero'; return; }
+      token=data.token; nombre=data.nombre;
+      document.getElementById('nombreMesero') && (document.getElementById('nombreMesero').textContent=nombre);
+      cargarMenu();
+      show('screen-pedido');
+      // llenar mesas
+      const ms=document.getElementById('mesaSel');
+      for(let i=1;i<=10;i++){ const o=document.createElement('option'); o.value=i; o.textContent='Mesa '+i; ms.appendChild(o); }
+    }
+
+    async function cargarMenu(){
+      const res=await fetch('/api/menu');
+      menuData=await res.json();
+      const res2=await fetch('/api/extras');
+      extrasData=await res2.json();
+      renderTabla();
+      renderExtras();
+      cargarActivos();
+    }
+
+    function categoriaDe(m){
+      const c=m.categoria.toLowerCase();
+      if(c.includes('bebida')||c.includes('cerveza')||c.includes('caguama')||c.includes('refresco')||c.includes('agua de fruta')) return 'bebidas';
+      if(c.includes('postre')||c.includes('caliente')) return 'postres';
+      return 'comidas';
+    }
+
+    function cambiarCat(cat){
+      catActual=cat;
+      document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active', b.dataset.cat===cat));
+      renderTabla();
+    }
+
+    function renderTabla(){
+      const tbody=document.getElementById('menuTable');
+      const filtrados=menuData.filter(m=>categoriaDe(m)===catActual).sort((a,b)=> (b.es_menu_dia||0)-(a.es_menu_dia||0));
+      tbody.innerHTML=filtrados.map(m=>{
+        const agotado=!m.disponible;
+        const key='m_'+m.id;
+        const cant=carrito[key]?.qty||0;
+        const nota=carrito[key]?.nota||'';
+        const esDia=m.es_menu_dia;
+        return `<tr class="${agotado?'agotado':''} ${esDia?'menu-dia':''}">
+          <td>${cant}</td>
+          <td>${m.emoji} ${m.nombre} ${esDia?'<span style="color:var(--gold);font-weight:700;">⭐ Especialidad del Día</span>':''}${agotado?' <span style="color:#f87171;font-weight:700;">AGOTADO</span>':''}</td>
+          <td><button class="nota-btn" ${agotado?'disabled':''} onclick="notaMenu(${m.id})">${nota?nota:'📝'}</button></td>
+          <td>$${m.precio}</td>
+          <td>
+            <button class="qty-btn" ${agotado?'disabled':''} onclick="cambiarQtyMenu(${m.id},1)">+</button>
+            <button class="qty-btn" ${agotado?'disabled':''} onclick="cambiarQtyMenu(${m.id},-1)">-</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function cambiarQtyMenu(id,delta){
+      const key='m_'+id;
+      const m=menuData.find(x=>x.id==id);
+      if(!m||!m.disponible) return;
+      if(!carrito[key]) carrito[key]={type:'menu',id,qty:0,nota:''};
+      carrito[key].qty+=delta;
+      if(carrito[key].qty<=0) delete carrito[key];
+      renderTabla();
+      renderCarrito();
+      actualizarBotonEnviar();
+    }
+
+    function notaMenu(id){
+      const key='m_'+id;
+      const m=menuData.find(x=>x.id==id);
+      if(!m||!m.disponible) return;
+      if(!carrito[key]) carrito[key]={type:'menu',id,qty:1,nota:''};
+      const actual=carrito[key].nota||'';
+      const n=prompt('Nota para este platillo:', actual);
+      if(n===null) return;
+      carrito[key].nota=n;
+      renderTabla();
+      renderCarrito();
+    }
+
+    function renderExtras(){
+      document.getElementById('extrasGrid').innerHTML=extrasData.map(e=>`
+        <div class="extra" onclick="agregarExtra(${e.id})">
+          <div>🧂 ${e.nombre}</div>
+          <div style="color:var(--warn);font-weight:700;">$${e.precio}</div>
+        </div>`).join('');
+    }
+
+    function agregarExtra(id){
+      const e=extrasData.find(x=>x.id==id);
+      if(!e) return;
+      const key='e_'+id;
+      if(!carrito[key]) carrito[key]={type:'extra',id,qty:0,nota:''};
+      carrito[key].qty++;
+      renderCarrito();
+      actualizarBotonEnviar();
+    }
+
+    function renderCarrito(){
+      const cont=document.getElementById('carrito');
+      let total=0;
+      cont.innerHTML=Object.keys(carrito).map(key=>{
+        const c=carrito[key];
+        let nombre, precio;
+        if(c.type==='menu'){ const m=menuData.find(x=>x.id==c.id); nombre=m.emoji+' '+m.nombre; precio=m.precio; }
+        else if(c.type==='extra'){ const e=extrasData.find(x=>x.id==c.id); nombre='🧂 '+e.nombre; precio=e.precio; }
+        else { nombre='📝 '+c.nombre; precio=c.precio; }
+        const sub=precio*c.qty; total+=sub;
+        const notaTxt=c.nota?`<div style="font-size:.75rem;color:#facc15;">📝 ${c.nota}</div>`:'';
+        return `<div class="cart-item">
+          <div>
+            <div>${nombre} x${c.qty}</div>
+            ${notaTxt}
+          </div>
+          <div>$${sub}</div>
+        </div>`;
+      }).join('')||'<em>Carrito vacío</em>';
+      document.getElementById('total').textContent=total.toFixed(2);
+    }
+
+    function actualizarBotonEnviar(){
+      const zona=document.getElementById('zonaSel').value;
+      const mesa=document.getElementById('mesaSel').value;
+      const hasItems=Object.keys(carrito).length>0;
+      document.getElementById('btnEnviar').disabled=!(zona&&mesa&&hasItems);
+    }
+
+    async function cargarMesasZona(zona){
+      const ms=document.getElementById('mesaSel');
+      ms.innerHTML='<option value="">-- Elige mesa --</option>';
+      if(!zona) return;
+      const res=await fetch('/api/mesas?zona='+encodeURIComponent(zona));
+      const data=await res.json();
+      data.forEach(m=>{
+        const o=document.createElement('option');
+        o.value=m.numero_mesa;
+        o.textContent='Mesa '+m.numero_mesa;
+        ms.appendChild(o);
+      });
+      actualizarBotonEnviar();
+    }
+    document.addEventListener('change', (e)=>{
+      if(e.target.id==='zonaSel'){ cargarMesasZona(e.target.value); }
+      if(e.target.id==='zonaSel'||e.target.id==='mesaSel') actualizarBotonEnviar();
+    });
+
+    async function enviarPedido(){
+      const zona=document.getElementById('zonaSel').value;
+      const mesa=parseInt(document.getElementById('mesaSel').value);
+      const items=Object.keys(carrito).map(key=>{
+        const c=carrito[key];
+        if(c.type==='menu') return {menu_id:c.id,cantidad:c.qty,nota:c.nota};
+        if(c.type==='extra') return {extra_id:c.id,cantidad:c.qty,nota:c.nota};
+        return {nombre:c.nombre,precio:c.precio,nota:c.nota,cantidad:c.qty};
+      });
+      if(items.length===0){ alert('Carrito vacío'); return; }
+      if(!zona||!mesa){ alert('Asigna zona y mesa'); return; }
+      const res=await fetch('/api/crear_pedido',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({token,mesa,zona,items})});
+      const data=await res.json();
+      if(!data.ok){ alert(data.msg); return; }
+      carrito={}; renderTabla(); renderCarrito();
+      document.getElementById('zonaSel').value='';
+      document.getElementById('mesaSel').value='';
+      actualizarBotonEnviar();
+      alert('Pedido enviado a cocina #' + data.pedido_id);
+      cargarActivos();
+    }
+
+    // Activos
+    async function cargarActivos(){
+      if(!token) return;
+      const res=await fetch(`/api/mis_pedidos/${token}`);
+      const data=await res.json();
+      if(!data.ok) return;
+      const cont=document.getElementById('activos');
+      if(data.pedidos.length===0){ cont.innerHTML='<em>Sin pedidos activos</em>'; return; }
+      cont.innerHTML=data.pedidos.map(p=>{
+        const items=p.detalles.map(d=>`${d.emoji} ${d.nombre} x${d.cantidad}${d.nota?' ('+d.nota+')':''}`).join(', ');
+        const puedeCobrar = p.estado==='LISTO';
+        return `<div class="activo">
+          <div class="head">
+            <span class="mesa">Mesa ${p.mesa} (${p.zona}) — #${p.id}</span>
+            <span class="estado estado-${p.estado}">${p.estado.replace('_',' ')}</span>
+          </div>
+          <div style="opacity:.8; font-size:.85rem; margin-bottom:6px;">${items}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+            <strong>Total: $${p.total}</strong>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-blue" style="padding:6px 10px;" onclick="abrirEditar(${p.id})">✏️ Editar</button>
+              <button class="btn btn-red" style="padding:6px 10px;" onclick="cancelarPedido(${p.id})">❌ Cancelar</button>
+              <button class="btn btn-green" style="padding:6px 10px;" ${puedeCobrar?'':'disabled'} onclick="abrirModalPago(${p.id})">💰 Cobrar</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function cancelarPedido(id){
+      if(!confirm('¿Cancelar este pedido?')) return;
+      const res=await fetch(`/api/cancelar_pedido/${id}`,{method:'POST'});
+      const data=await res.json();
+      if(!data.ok){ alert(data.msg||'Error'); return; }
+      cargarActivos();
+    }
+
+    // Editar
+    function abrirEditar(id){
+      editandoId=id;
+      fetch(`/api/mis_pedidos/${token}`).then(r=>r.json()).then(data=>{
+        const p=data.pedidos.find(x=>x.id===id);
+        if(!p) return;
+        editCart={};
+        p.detalles.forEach((d,idx)=>{
+          editCart['e_'+idx]={menu_id:d.menu_id, nombre:d.nombre, precio:d.precio, qty:d.cantidad, nota:d.nota||'', custom: !d.menu_id};
+        });
+        renderEditItems();
+        document.getElementById('modalEditar').classList.add('active');
+      });
+    }
+    function cerrarEditar(){ document.getElementById('modalEditar').classList.remove('active'); editandoId=null; editCart={}; }
+    function renderEditItems(){
+      const cont=document.getElementById('editItems');
+      cont.innerHTML=Object.keys(editCart).map(key=>{
+        const c=editCart[key];
+        return `<div class="edit-row">
+          <span>${c.nombre}</span>
+          <button class="qty-btn" onclick="editQty('${key}',-1)">-</button>
+          <span>${c.qty}</span>
+          <button class="qty-btn" onclick="editQty('${key}',1)">+</button>
+          <button class="btn btn-red" style="padding:4px 8px;" onclick="editRemove('${key}')">🗑️</button>
+        </div>
+        <div style="margin-bottom:8px;"><input placeholder="Nota" value="${c.nota||''}" onchange="editCart['${key}'].nota=this.value" /></div>`;
+      }).join('')||'<em>Sin items</em>';
+    }
+    function editQty(key,delta){
+      editCart[key].qty+=delta;
+      if(editCart[key].qty<=0) delete editCart[key];
+      renderEditItems();
+    }
+    function editRemove(key){ delete editCart[key]; renderEditItems(); }
+    async function guardarEdicion(){
+      const items=Object.keys(editCart).map(key=>{
+        const c=editCart[key];
+        if(c.menu_id) return {menu_id:c.menu_id,cantidad:c.qty,nota:c.nota};
+        return {nombre:c.nombre,precio:c.precio,nota:c.nota,cantidad:c.qty};
+      });
+      const res=await fetch(`/api/editar_pedido/${editandoId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})});
+      const data=await res.json();
+      if(!data.ok){ document.getElementById('editMsg').textContent=data.msg||'Error'; return; }
+      document.getElementById('editMsg').textContent='Guardado ✅';
+      setTimeout(()=>{ cerrarEditar(); cargarActivos(); },1000);
+    }
+
+    // Modal pago
+    function abrirModalPago(id){
+      pedidoPagoId=id;
+      document.getElementById('modalPago').classList.add('active');
+    }
+    function cerrarModal(){
+      document.getElementById('modalPago').classList.remove('active');
+      metodoPagoSel=null;
+      document.querySelectorAll('.pay-opt').forEach(o=>o.classList.remove('selected'));
+      document.getElementById('pagoMsg').textContent='';
+    }
+    function selPago(m){
+      metodoPagoSel=m;
+      document.querySelectorAll('.pay-opt').forEach(o=>o.classList.toggle('selected', o.dataset.m===m));
+    }
+    async function confirmarPago(){
+      if(!metodoPagoSel){ document.getElementById('pagoMsg').textContent='Selecciona un método'; return; }
+      const res=await fetch('/api/procesar_pago',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({pedido_id:pedidoPagoId,metodo_pago:metodoPagoSel})});
+      const data=await res.json();
+      if(!data.ok){ document.getElementById('pagoMsg').textContent=data.msg; return; }
+      document.getElementById('pagoMsg').textContent=`Pagado $${data.monto} con ${data.metodo_pago} ✅`;
+      setTimeout(()=>{ cerrarModal(); cargarActivos(); },1200);
+    }
+
+    // Custom
+    function abrirCustom(){ document.getElementById('modalCustom').classList.add('active'); }
+    function cerrarCustom(){ document.getElementById('modalCustom').classList.remove('active'); }
+    function confirmarCustom(){
+      const nombre=document.getElementById('cNombre').value.trim();
+      const precio=parseFloat(document.getElementById('cPrecio').value||'0');
+      const nota=document.getElementById('cNota').value.trim();
+      if(!nombre){ alert('Escribe un nombre'); return; }
+      const key='c_'+Date.now();
+      carrito[key]={type:'custom',nombre,precio,nota,qty:1};
+      renderCarrito();
+      document.getElementById('cNombre').value='';
+      document.getElementById('cPrecio').value='';
+      document.getElementById('cNota').value='';
+      cerrarCustom();
+    }
+
+    async function login(){
+      const t=document.getElementById('tokenInput').value.trim();
+      const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+      const data=await res.json();
+      if(!data.ok){ document.getElementById('loginMsg').textContent=data.msg; return; }
+      if(data.rol!=='MESERO'){ document.getElementById('loginMsg').textContent='Token no es de mesero'; return; }
+      token=data.token; nombre=data.nombre;
+      cargarMenu();
+      show('screen-pedido');
+    }
+
+    setInterval(cargarActivos,3000);
+  </script>
+</body>
+</html>

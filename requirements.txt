@@ -1,0 +1,5 @@
+# Librerías para el POS "La Cabaña de Adobe" (FastAPI)
+# Instalar con: pip install -r requirements.txt
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.0

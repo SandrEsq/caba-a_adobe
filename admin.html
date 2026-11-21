@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📊 Admin — La Cabaña de Adobe</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --accent:#f43f5e; --ok:#22c55e; --warn:#facc15; --muted:#94a3b8; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:#f1f5f9; min-height:100vh; padding:16px; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    h1 { font-size:1.8rem; }
+    .card { background:var(--card); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+    .tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+    .tab { padding:10px 18px; border-radius:10px; background:rgba(255,255,255,.08); cursor:pointer; font-weight:700; }
+    .tab.active { background:var(--accent); color:#fff; }
+    .panel { display:none; }
+    .panel.active { display:block; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { padding:10px; border-bottom:1px solid #334155; text-align:left; font-size:.95rem; }
+    th { color:var(--muted); font-weight:600; }
+    .btn { border:none; border-radius:10px; padding:8px 14px; font-weight:700; cursor:pointer; }
+    .btn-primary { background:linear-gradient(135deg,#f43f5e,#fb7185); color:#fff; }
+    .btn-green { background:linear-gradient(135deg,#22c55e,#4ade80); color:#052e16; }
+    .btn-red { background:#ef4444; color:#fff; }
+    .btn-ghost { background:rgba(255,255,255,.08); color:#f1f5f9; }
+    input,select { padding:8px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#fff; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+    .stat { display:inline-block; background:rgba(255,255,255,.06); padding:12px 18px; border-radius:12px; margin:6px; }
+    .stat .n { font-size:1.6rem; font-weight:800; color:var(--warn); }
+    .login-box { max-width:400px; margin:60px auto; text-align:center; }
+    .token-input { font-size:2rem; text-align:center; letter-spacing:10px; }
+    #app { display:none; }
+  </style>
+</head>
+<body>
+
+  <div id="login" class="login-box card">
+    <h1>📊 Panel Administrador</h1>
+    <p style="opacity:.8; margin-bottom:16px;">Token de administrador</p>
+    <input id="tokenInput" class="token-input" type="password" maxlength="4" placeholder="••••" />
+    <br/><br/>
+    <button class="btn btn-primary" style="width:100%;" onclick="login()">Entrar</button>
+    <p id="loginMsg" style="color:#f87171; margin-top:10px; font-weight:600;"></p>
+  </div>
+
+  <div id="app">
+    <header>
+      <h1>📊 La Cabaña de Adobe — Admin</h1>
+      <button class="btn btn-ghost" onclick="location.reload()">Salir</button>
+    </header>
+
+    <div class="tabs">
+      <div class="tab active" data-p="reportes" onclick="tab('reportes')">💰 Corte de Caja</div>
+      <div class="tab" data-p="menu" onclick="tab('menu')">🍽️ Gestión Menú</div>
+      <div class="tab" data-p="menudia" onclick="tab('menudia')">⭐ Menú del Día</div>
+      <div class="tab" data-p="mesas" onclick="tab('mesas')">🪑 Gestión Mesas</div>
+      <div class="tab" data-p="meseros" onclick="tab('meseros')">👥 Gestión Meseros</div>
+    </div>
+
+    <div id="panel-reportes" class="panel active">
+      <div class="card">
+        <div class="row">
+          <button class="btn btn-primary" onclick="cargarReportes()">🔄 Actualizar</button>
+        </div>
+        <div id="stats"></div>
+        <h3 style="margin-top:16px;">Por método de pago</h3>
+        <table><thead><tr><th>Método</th><th># Pagos</th><th>Total</th></tr></thead><tbody id="tbodyMetodo"></tbody></table>
+        <h3 style="margin-top:16px;">Ventas por Mesero</h3>
+        <table><thead><tr><th>Mesero</th><th>Token</th><th># Pedidos</th><th>Total vendido</th></tr></thead><tbody id="tbodyMesero"></tbody></table>
+      </div>
+    </div>
+
+    <div id="panel-menu" class="panel">
+      <div class="card">
+        <h3>Agregar platillo</h3>
+        <div class="row">
+          <input id="mNombre" placeholder="Nombre" />
+          <input id="mPrecio" type="number" step="0.01" placeholder="Precio" style="width:100px;" />
+          <select id="mCat">
+            <option>Platillos Fuertes</option><option>Parrilladas</option><option>Tacos</option>
+            <option>Complementos</option><option>Antojitos</option><option>Agua de Fruta</option>
+            <option>Cervezas</option><option>Caguamas</option><option>Refrescos</option>
+            <option>Bebidas Calientes/Postres</option>
+          </select>
+          <input id="mEmoji" placeholder="Emoji" style="width:80px;" value="🍽️" />
+          <button class="btn btn-green" onclick="crearPlatillo()">➕ Agregar</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Emoji</th><th>Nombre</th><th>Precio</th><th>Categoría</th><th>Disp.</th><th>Acciones</th></tr></thead>
+          <tbody id="tbodyMenu"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="panel-menudia" class="panel">
+      <div class="card">
+        <h3>Marcar especialidad del día</h3>
+        <table>
+          <thead><tr><th>ID</th><th>Emoji</th><th>Nombre</th><th>Categoría</th><th>Menú del Día</th></tr></thead>
+          <tbody id="tbodyMenuDia"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="panel-mesas" class="panel">
+      <div class="card">
+        <h3>Agregar mesa</h3>
+        <div class="row">
+          <select id="mZona"><option>Salón</option><option>Terraza</option><option>Jardín</option></select>
+          <input id="mNumero" type="number" placeholder="Número de mesa" style="width:160px;" />
+          <button class="btn btn-green" onclick="crearMesa()">➕ Agregar</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Zona</th><th>Mesa</th><th>Activa</th><th>Acciones</th></tr></thead>
+          <tbody id="tbodyMesas"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="panel-meseros" class="panel">
+      <div class="card">
+        <h3>Alta de mesero</h3>
+        <div class="row">
+          <input id="msToken" placeholder="Token 4 dígitos" maxlength="4" style="width:140px;" />
+          <input id="msNombre" placeholder="Nombre" />
+          <select id="msRol"><option value="MESERO">Mesero</option><option value="ADMIN">Admin</option></select>
+          <button class="btn btn-green" onclick="crearMesero()">➕ Alta</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Token</th><th>Nombre</th><th>Rol</th><th>Activo</th><th>Acciones</th></tr></thead>
+          <tbody id="tbodyMeseros"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let token=null;
+    function tab(p){
+      document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.p===p));
+      document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active', x.id==='panel-'+p));
+      if (p === 'menudia') cargarMenuDia();
+      if (p === 'mesas') cargarMesasAdmin();
+    }
+
+    async function login(){
+      const t=document.getElementById('tokenInput').value.trim();
+      const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+      const data=await res.json();
+      if(!data.ok){ document.getElementById('loginMsg').textContent=data.msg; return; }
+      if(data.rol!=='ADMIN'){ document.getElementById('loginMsg').textContent='Token no es de administrador'; return; }
+      token=data.token;
+      document.getElementById('login').style.display='none';
+      document.getElementById('app').style.display='block';
+      cargarReportes(); cargarMenu(); cargarMeseros(); cargarMenuDia(); cargarMesasAdmin();
+    }
+
+    async function cargarReportes(){
+      const res=await fetch('/api/admin/reportes');
+      const d=await res.json();
+      document.getElementById('stats').innerHTML=`
+        <div class="stat"><div>Fecha</div><div class="n">${d.fecha}</div></div>
+        <div class="stat"><div>Total del día</div><div class="n">$${d.total_hoy}</div></div>`;
+      document.getElementById('tbodyMetodo').innerHTML=d.por_metodo.map(r=>
+        `<tr><td>${r.metodo_pago}</td><td>${r.num}</td><td>$${r.total}</td></tr>`).join('')||'<tr><td colspan="3">Sin pagos hoy</td></tr>';
+      document.getElementById('tbodyMesero').innerHTML=d.por_mesero.map(r=>
+        `<tr><td>${r.nombre}</td><td>${r.token}</td><td>${r.num_pedidos}</td><td>$${r.total_vendido}</td></tr>`).join('')||'<tr><td colspan="4">Sin ventas hoy</td></tr>';
+    }
+
+    async function cargarMenu(){
+      const res=await fetch('/api/admin/menu');
+      const data=await res.json();
+      document.getElementById('tbodyMenu').innerHTML=data.map(m=>`
+        <tr>
+          <td>${m.id}</td><td>${m.emoji}</td><td>${m.nombre}</td><td>$${m.precio}</td><td>${m.categoria}</td>
+          <td>${m.disponible?'✅':'❌'}</td>
+          <td>
+            <button class="btn btn-ghost" onclick="editarPrecio(${m.id})">✏️</button>
+            <button class="btn btn-red" onclick="eliminarPlatillo(${m.id})">🗑️</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    async function crearPlatillo(){
+      const nombre=document.getElementById('mNombre').value.trim();
+      const precio=document.getElementById('mPrecio').value;
+      const categoria=document.getElementById('mCat').value;
+      const emoji=document.getElementById('mEmoji').value.trim()||'🍽️';
+      if(!nombre||!precio){ alert('Datos incompletos'); return; }
+      await fetch('/api/admin/menu',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({nombre,precio:parseFloat(precio),categoria,emoji})});
+      document.getElementById('mNombre').value=''; document.getElementById('mPrecio').value='';
+      cargarMenu();
+    }
+
+    async function editarPrecio(id){
+      const nuevo=prompt('Nuevo precio:');
+      if(nuevo===null) return;
+      await fetch(`/api/admin/menu/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({precio:parseFloat(nuevo)})});
+      cargarMenu();
+    }
+
+    async function eliminarPlatillo(id){
+      if(!confirm('¿Eliminar platillo?')) return;
+      await fetch(`/api/admin/menu/${id}`,{method:'DELETE'});
+      cargarMenu();
+    }
+
+    async function cargarMenuDia(){
+      const res=await fetch('/api/admin/menu');
+      const data=await res.json();
+      document.getElementById('tbodyMenuDia').innerHTML=data.map(m=>`
+        <tr>
+          <td>${m.id}</td><td>${m.emoji}</td><td>${m.nombre}</td><td>${m.categoria}</td>
+          <td><input type="checkbox" ${m.es_menu_dia?'checked':''} onchange="toggleMenuDia(${m.id}, this.checked?1:0)" /></td>
+        </tr>`).join('');
+    }
+
+    async function toggleMenuDia(id,val){
+      await fetch(`/api/admin/menu_del_dia/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({es_menu_dia:val})});
+    }
+
+    async function cargarMesasAdmin(){
+      const res=await fetch('/api/admin/mesas');
+      const data=await res.json();
+      document.getElementById('tbodyMesas').innerHTML=data.map(m=>`
+        <tr>
+          <td>${m.id}</td><td>${m.zona}</td><td>${m.numero_mesa}</td>
+          <td>${m.activa?'✅':'❌'}</td>
+          <td><button class="btn btn-ghost" onclick="toggleMesa(${m.id},${m.activa?0:1})">${m.activa?'Desactivar':'Activar'}</button></td>
+        </tr>`).join('');
+    }
+
+    async function crearMesa(){
+      const zona=document.getElementById('mZona').value;
+      const numero=document.getElementById('mNumero').value;
+      if(!numero){ alert('Ingresa número de mesa'); return; }
+      const res=await fetch('/api/admin/mesas',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({zona,numero_mesa:parseInt(numero)})});
+      const data=await res.json();
+      if(!data.ok){ alert(data.msg||'Error'); return; }
+      document.getElementById('mNumero').value='';
+      cargarMesasAdmin();
+    }
+
+    async function toggleMesa(id,activa){
+      await fetch(`/api/admin/mesas/${id}/toggle`,{method:'PUT',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({activa})});
+      cargarMesasAdmin();
+    }
+
+    async function cargarMeseros(){
+      const res=await fetch('/api/admin/meseros');
+      const data=await res.json();
+      document.getElementById('tbodyMeseros').innerHTML=data.map(m=>`
+        <tr>
+          <td>${m.id}</td><td>${m.token}</td><td>${m.nombre}</td><td>${m.rol}</td>
+          <td>${m.activo?'✅':'❌'}</td>
+          <td><button class="btn btn-ghost" onclick="toggleMesero(${m.id},${m.activo?0:1})">${m.activo?'Dar de baja':'Reactivar'}</button></td>
+        </tr>`).join('');
+    }
+
+    async function crearMesero(){
+      const token=document.getElementById('msToken').value.trim();
+      const nombre=document.getElementById('msNombre').value.trim();
+      const rol=document.getElementById('msRol').value;
+      if(token.length!==4||!token.match(/^\d{4}$/)||!nombre){ alert('Datos inválidos'); return; }
+      const res=await fetch('/api/admin/meseros',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({token,nombre,rol})});
+      const data=await res.json();
+      if(!data.ok){ alert(data.msg); return; }
+      document.getElementById('msToken').value=''; document.getElementById('msNombre').value='';
+      cargarMeseros();
+    }
+
+    async function toggleMesero(id,activo){
+      await fetch(`/api/admin/meseros/${id}/toggle`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({activo})});
+      cargarMeseros();
+    }
+  </script>
+</body>
+</html>

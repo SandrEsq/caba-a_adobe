@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🍳 Cocina — La Cabaña de Adobe</title>
+  <style>
+    :root { --bg:#0b1220; --card:#1e293b; --pend:#38bdf8; --prep:#facc15; --ok:#22c55e; --muted:#94a3b8; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:#f1f5f9; min-height:100vh; padding:16px; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+    h1 { font-size:1.8rem; }
+    #status { color:var(--muted); font-size:.9rem; }
+    .layout { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
+    @media (max-width:900px){ .layout { grid-template-columns:1fr; } }
+    .card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:16px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:14px; }
+    .pedido { background:var(--card); border-radius:16px; padding:16px; border-left:6px solid var(--pend); animation:pop .3s ease; }
+    @keyframes pop { from{transform:scale(.95);opacity:0} to{transform:scale(1);opacity:1} }
+    .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .mesa { font-size:1.4rem; font-weight:800; }
+    .badge { padding:4px 10px; border-radius:8px; font-weight:700; font-size:.8rem; }
+    .badge.PENDIENTE { background:var(--pend); color:#0b1220; }
+    .badge.EN_PREPARACION { background:var(--prep); color:#0b1220; }
+    .badge.LISTO { background:var(--ok); color:#0b1220; }
+    .detalle { padding:6px 0; border-top:1px solid #334155; display:flex; align-items:center; gap:8px; }
+    .detalle.surtido { text-decoration:line-through; opacity:.5; }
+    .nota { color:#facc15; font-size:.85rem; font-style:italic; margin-left:8px; }
+    .total { font-weight:800; color:var(--prep); margin:8px 0; }
+    .btn { border:none; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; margin:4px 4px 0 0; }
+    .btn-prep { background:linear-gradient(135deg,#facc15,#eab308); color:#0b1220; }
+    .btn-listo { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; }
+    .btn-ent { background:linear-gradient(135deg,#a78bfa,#7c3aed); color:#fff; }
+    .inv-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #334155; gap:8px; }
+    .switch { position:relative; width:46px; height:24px; flex-shrink:0; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; inset:0; background:#475569; border-radius:24px; transition:.3s; cursor:pointer; }
+    .slider:before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.3s; }
+    input:checked + .slider { background:#ef4444; }
+    input:checked + .slider:before { transform:translateX(22px); }
+    .agotado { color:#f87171; font-weight:700; font-size:.8rem; }
+    .empty { text-align:center; padding:40px; color:var(--muted); }
+    input.search { width:100%; padding:8px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#fff; margin-bottom:10px; }
+    .checkbox { width:20px; height:20px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🍳 Cocina — La Cabaña de Adobe</h1>
+    <span id="status">Actualizando cada 3s...</span>
+  </header>
+
+  <div class="layout">
+    <div>
+      <h2 style="margin-bottom:12px;">📋 Pedidos entrantes</h2>
+      <div class="grid" id="pedidos"></div>
+      <div class="empty" id="empty" style="display:none;">🎉 Sin pedidos pendientes</div>
+    </div>
+
+    <div class="card">
+      <h2>📦 Inventario</h2>
+      <input class="search" id="searchInv" placeholder="Buscar platillo..." oninput="filtrarInv()" />
+      <div id="inventario"></div>
+    </div>
+  </div>
+
+  <script>
+    const cont=document.getElementById('pedidos');
+    const empty=document.getElementById('empty');
+    const inv=document.getElementById('inventario');
+    let menuCache=[];
+
+    async function cargarPedidos(){
+      try{
+        const res=await fetch('/api/pedidos_cocina');
+        const data=await res.json();
+        if(data.length===0){ cont.innerHTML=''; empty.style.display='block'; return; }
+        empty.style.display='none';
+        cont.innerHTML=data.map(p=>`
+          <div class="pedido">
+            <div class="head">
+              <span class="mesa">Mesa ${p.mesa}</span>
+              <span class="badge ${p.estado}">${p.estado.replace('_',' ')}</span>
+            </div>
+            <p style="opacity:.8; font-size:.9rem; margin-bottom:6px;">${p.zona} — ${p.mesero_nombre} — #${p.id}</p>
+            ${p.detalles.map(d=>`
+              <div class="detalle ${d.surtido?'surtido':''}">
+                <input type="checkbox" class="checkbox" ${d.surtido?'checked':''} onchange="surtir(${d.detalle_id}, this.checked)" />
+                <span>${d.emoji} ${d.nombre} x${d.cantidad}</span>
+                ${d.nota?`<span class="nota">⚠️ ${d.nota}</span>`:''}
+              </div>`).join('')}
+            <div class="total">Total: $${p.total}</div>
+            <div>
+              <button class="btn btn-prep" onclick="cambiar(${p.id},'EN_PREPARACION')">👨‍🍳 Preparar</button>
+              <button class="btn btn-listo" onclick="cambiar(${p.id},'LISTO')">✅ Listo</button>
+              <button class="btn btn-ent" onclick="cambiar(${p.id},'ENTREGADO')">📦 Entregado</button>
+            </div>
+          </div>`).join('');
+      }catch(e){ console.error(e); }
+    }
+
+    async function surtir(detalleId,checked){
+      await fetch('/api/surtir_platillo/'+detalleId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({surtido:checked?1:0})});
+      cargarPedidos();
+    }
+
+    async function cambiar(id,estado){
+      await fetch('/api/cambiar_estado',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({pedido_id:id,estado})});
+      cargarPedidos();
+    }
+
+    async function cargarInventario(){
+      try{
+        const res=await fetch('/api/menu');
+        menuCache=await res.json();
+        renderInv();
+      }catch(e){ console.error(e); }
+    }
+
+    function filtrarInv(){ renderInv(); }
+
+    function renderInv(){
+      const q=document.getElementById('searchInv').value.toLowerCase();
+      const filtrado=menuCache.filter(m=>m.nombre.toLowerCase().includes(q));
+      inv.innerHTML=filtrado.map(m=>`
+        <div class="inv-item">
+          <span>${m.emoji} ${m.nombre}</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${m.disponible?'':'<span class="agotado">AGOTADO</span>'}
+            <label class="switch">
+              <input type="checkbox" ${m.disponible?'checked':''} onchange="toggleDisp(${m.id}, this.checked?1:0)" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>`).join('');
+    }
+
+    async function toggleDisp(id,disp){
+      await fetch('/api/toggle_disponibilidad',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({menu_id:id,disponible:disp})});
+      cargarInventario();
+    }
+
+    cargarPedidos(); cargarInventario();
+    setInterval(()=>{ cargarPedidos(); cargarInventario(); },3000);
+  </script>
+</body>
+</html>
